@@ -56,6 +56,7 @@ def apply_edits(input_path: str, actions: list) -> str:
         # We go up from services -> app -> backend -> assets
         base_dir = Path(__file__).resolve().parent.parent.parent
         font_path = base_dir / "assets" / "fonts" / "Arial.ttf"
+        music_dir = base_dir / "assets" / "music"
         
         # Convert to string and fix Windows path issues for FFmpeg
         font_str = str(font_path).replace("\\", "/")
@@ -122,9 +123,35 @@ def apply_edits(input_path: str, actions: list) -> str:
                     # it applies to the last N seconds if you track duration.
                     # Let's stick to Fade IN for safety in Level 1.
                     pass
+            elif action['type'] == 'add_music':
+                track_name = action.get('track')
+                vol = action.get('volume', 0.3)
+                
+                music_path = music_dir / track_name
+                
+                if music_path.exists():
+                    # Load music file
+                    music_input = ffmpeg.input(str(music_path))
+                    
+                    # Apply volume adjustment
+                    # 'inf' means infinite loop? No, simple input for MVP.
+                    # We assume music is long enough. 
+                    music_stream = music_input.filter('volume', volume=vol)
+                else:
+                    print(f"⚠️ Music file not found: {music_path}")
+            # ------------------------
 
         # 4. Output
-        stream = ffmpeg.output(stream, audio, output_path)
+        if music_stream:
+            # 'duration=first' means cut the music when the video ends
+            # 'dropout_transition=0' makes it seamless
+            mixed_audio = ffmpeg.filter([audio, music_stream], 'amix', duration='first', dropout_transition=0)
+            stream = ffmpeg.output(stream, mixed_audio, output_path)
+        else:
+            # Standard output if no music
+            stream = ffmpeg.output(stream, audio, output_path)
+
+
         ffmpeg.run(stream, overwrite_output=True)
         
         return output_path

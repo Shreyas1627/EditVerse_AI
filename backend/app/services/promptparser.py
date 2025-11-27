@@ -23,6 +23,35 @@ def parse_prompt(prompt_text: str) -> dict:
     You must return a JSON object with a key "actions", which is a list of actions.
     Example: {"actions": [{"type": "trim", "start": 0, "end": 10}, {"type": "fade", "kind": "in"}]}
 
+    AVAILABLE MUSIC LIBRARY (Use ONLY these filenames):
+    - "actiondrama_1.mp3"    (for action, intense, fast, hype)
+    - "actiondrama_2.mp3"    (for gym, powerful, aggressive)
+    - "comedy_1.mp3"         (for funny, light, goofy)
+    - "comedy_2.mp3"         (for extra goofy, meme vibes)
+    - "electric_1.mp3"       (for techno, energetic, modern)
+    - "horror_1.mp3"         (for scary, dark tension)
+    - "horror_2.mp3"         (for deeper horror, thriller)
+    - "miscellaneous_1.mp3"  (for random, neutral, filler)
+    - "miscellaneous_2.mp3"  (for mixed style, generic mood)
+    - "positive_1.mp3"       (for happy, upbeat, vlog, fun)
+    - "positive_2.mp3"       (for cheerful, energetic, viral)
+    - "romantic_1.mp3"       (for love, soft romance)
+    - "romantic_2.mp3"       (for deep emotional romance)
+    - "scoring_1.mp3"        (for cinematic, emotional, sad)
+    - "world_1.mp3"          (for cultural, outdoors, travel)
+    - "world_2.mp3"          (for global, nature atmosphere)
+
+    AUTO-EMOTION → TRACK MAPPING:
+    - happy, vlog, fun, upbeat, viral  → "positive_1.mp3"
+    - sad, emotional, cinematic, slow  → "scoring_1.mp3"
+    - action, intense, fast, hype, gym → "actiondrama_1.mp3"
+    - horror, scary, dark, thriller    → "horror_1.mp3"
+    - romantic, love, soft             → "romantic_1.mp3"
+    - funny, joking, meme              → "comedy_1.mp3"
+    - electric, techno, energetic      → "electric_1.mp3"
+    - world, travel, nature            → "world_1.mp3"
+    - random, neutral, mixed vibe      → "miscellaneous_1.mp3"
+
     AVAILABLE ACTIONS:
     1. type: "trim" -> requires "start" (float), "end" (float)
     2. type: "speed" -> requires "value" (float, e.g., 0.5 for slow, 2.0 for fast)
@@ -30,6 +59,7 @@ def parse_prompt(prompt_text: str) -> dict:
     4. type: "add_text" -> requires "content" (string)
     4. type: "add_text" -> requires "content" (string), optional "position" ("top", "bottom", "center")
     5. type: "fade" -> requires "kind" ("in" or "out"), optional "duration" (float, default 1.0)
+    6. type: "add_music" -> requires "track" (filename from library), optional "volume" (0.1 to 1.0, default 0.3)
 
     RULES:
     - If the user mentions "funny" or "viral", assume they want 1.5x speed.
@@ -37,6 +67,9 @@ def parse_prompt(prompt_text: str) -> dict:
     - If the user says "intro" or "start", add a "fade in".
     - If the user says "outro" or "end", add a "fade out".
     - If the user says "title" or "headline", set text position to "top".
+    - If user says "add music" without specifying style/emotion, choose automatically using emotion/category matching.
+    - If multiple moods match, choose the closest category.
+    - Always mix music at low volume (0.2 - 0.4) unless user says "loud".
     - Return ONLY raw JSON. No markdown formatting.
     """
 
