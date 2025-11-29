@@ -2,6 +2,8 @@
 import ffmpeg
 import os
 from pathlib import Path
+import whisper # <--- Add this at top
+from datetime import timedelta
 
 def get_video_metadata(file_path: str):
     """
@@ -36,6 +38,29 @@ def get_video_metadata(file_path: str):
         print(f"General Error during probing: {str(e)}")
         raise
 
+def generate_srt(transcription: dict, srt_path: str):
+    """Converts Whisper output to SRT format."""
+    with open(srt_path, "w", encoding="utf-8") as f:
+        for i, segment in enumerate(transcription["segments"]):
+            start = str(timedelta(seconds=int(segment["start"]))) + ",000"
+            end = str(timedelta(seconds=int(segment["end"]))) + ",000"
+            text = segment["text"].strip()
+            
+            # SRT Format:
+            # 1
+            # 00:00:01,000 --> 00:00:04,000
+            # Hello world
+            f.write(f"{i+1}\n{start} --> {end}\n{text}\n\n")
+
+def add_subtitles(input_path: str):
+    """Runs Whisper and generates an SRT file."""
+    model = whisper.load_model("tiny") # Use "base" or "small" for better accuracy (slower)
+    result = model.transcribe(input_path)
+    
+    srt_filename = input_path.replace(".mp4", ".srt")
+    generate_srt(result, srt_filename)
+    return srt_filename
+
 def apply_edits(input_path: str, actions: list) -> str:
     """
     Applies AI-generated edits (Trim, Speed, Filter, Text) to the video.
@@ -43,6 +68,7 @@ def apply_edits(input_path: str, actions: list) -> str:
     directory = os.path.dirname(input_path)
     filename = os.path.basename(input_path)
     output_path = os.path.join(directory, f"edited_{filename}")
+    srt_path = None
 
     if not actions:
         return input_path
@@ -139,17 +165,31 @@ def apply_edits(input_path: str, actions: list) -> str:
                     )
 
                     music_stream = (
-            music_input
-            .filter('aresample', 48000)
-            .filter('aformat', channel_layouts='stereo')  # safer than channelconvert
-            .filter('acopy')
-            .filter('volume', vol)
-        )
+                    music_input
+                    .filter('aresample', 48000)
+                    .filter('aformat', channel_layouts='stereo')  # safer than channelconvert
+                    .filter('acopy')
+                    .filter('volume', vol)
+                    )
+                
                     
-                  
-                    # Apply volume adjustment
-                    # 'inf' means infinite loop? No, simple input for MVP.
-                    # We assume music is long enough. 
+                elif action['type'] == 'auto_subtitles':
+
+                    print("🎙️ Generating Subtitles...")
+                    srt_path = add_subtitles(input_path)
+                    
+                    # FFmpeg 'subtitles' filter requires the path to be escaped weirdly on Windows
+                    # We use the simplified filename if it's in the same folder
+                    # or strictly escaped absolute path. 
+                    # Simplest way for FFmpeg-python:
+                    # Note: Windows paths in FFmpeg filter strings are a nightmare.
+                    # We convert backslash to forward slash.
+                    clean_srt_path = srt_path.replace("\\", "/").replace(":", "\\:")
+                    
+                    stream = stream.filter('subtitles', clean_srt_path, force_style='FontName=Arial,FontSize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1')
+                        # Apply volume adjustment
+                        # 'inf' means infinite loop? No, simple input for MVP.
+                        # We assume music is long enough. 
                    
                 else:
                     print(f"⚠️ Music file not found: {music_path}")

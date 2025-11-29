@@ -60,6 +60,7 @@ def parse_prompt(prompt_text: str) -> dict:
     4. type: "add_text" -> requires "content" (string), optional "position" ("top", "bottom", "center")
     5. type: "fade" -> requires "kind" ("in" or "out"), optional "duration" (float, default 1.0)
     6. type: "add_music" -> requires "track" (filename from library), optional "volume" (0.1 to 1.0, default 0.3)
+    7. type: "auto_subtitles" -> no arguments needed.
 
     RULES:
     - If the user mentions "funny" or "viral", assume they want 1.5x speed.
@@ -70,6 +71,7 @@ def parse_prompt(prompt_text: str) -> dict:
     - If user says "add music" without specifying style/emotion, choose automatically using emotion/category matching.
     - If multiple moods match, choose the closest category.
     - Always mix music at low volume (0.2 - 0.4) unless user says "loud".
+    - If user says "captions", "subtitles", or "words on screen", use "auto_subtitles".
     - Return ONLY raw JSON. No markdown formatting.
     """
 

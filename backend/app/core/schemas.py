@@ -50,6 +50,11 @@ class MusicAction(BaseModel):
     track: str # The filename, e.g., "happy.mp3"
     volume: float = 0.3 # Background volume (0.0 to 1.0)
 
+# --- NEW ACTION: SUBTITLES ---
+class SubtitleAction(BaseModel):
+    type: str = "auto_subtitles"
+    style: str = "default" # Future proofing for "karaoke" or "bold" styles
+
 # --- 3. The Container for AI Output ---
 class EditInstructions(BaseModel):
     # The AI returns a list of ANY of these actions
