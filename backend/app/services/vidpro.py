@@ -7,6 +7,8 @@ import whisper # <--- Add this at top
 from datetime import timedelta
 from pathlib import Path
 import shutil
+import subprocess
+import re
 
 # --- HELPER: SUBTITLE GENERATION ---
 def generate_srt(transcription: dict, srt_path: str):
@@ -32,6 +34,53 @@ def add_subtitles(input_path: str):
     
     print(f"✅ [WHISPER] Saved SRT to: {srt_filename}")
     return srt_filename
+
+def detect_silence(input_path: str, db_threshold=-30, min_duration=0.5):
+    """
+    Runs a 2-pass analysis to find start/end times of silence.
+    Returns a list of 'keep' segments (non-silent parts).
+    """
+    try:
+        print("🔇 Detecting silence...")
+        # Run silencedetect filter and capture output (it prints to stderr)
+        command = [
+            "ffmpeg", "-i", input_path, 
+            "-af", f"silencedetect=noise={db_threshold}dB:d={min_duration}",
+            "-f", "null", "-"
+        ]
+        result = subprocess.run(command, stderr=subprocess.PIPE, text=True)
+        output = result.stderr
+
+        # Parse output for silence_start and silence_end
+        silence_starts = [float(x) for x in re.findall(r'silence_start: (\d+(?:\.\d+)?)', output)]
+        silence_ends = [float(x) for x in re.findall(r'silence_end: (\d+(?:\.\d+)?)', output)]
+
+        # Calculate Total Duration to know where the video ends
+        probe = ffmpeg.probe(input_path)
+        total_duration = float(probe['format']['duration'])
+
+        # Calculate "Keep" Segments (The parts that represent speech/sound)
+        keep_segments = []
+        current_time = 0.0
+
+        for i in range(len(silence_ends)):
+            # If silence starts after current time, keep the chunk in between
+            if i < len(silence_starts):
+                start_silence = silence_starts[i]
+                if start_silence > current_time:
+                    keep_segments.append((current_time, start_silence))
+                current_time = silence_ends[i]
+        
+        # Add the final segment after the last silence
+        if current_time < total_duration:
+            keep_segments.append((current_time, total_duration))
+
+        print(f"✂️ Found {len(keep_segments)} valid segments to keep.")
+        return keep_segments
+
+    except Exception as e:
+        print(f"Silence Detection Failed: {e}")
+        return []
 
 def get_video_metadata(file_path: str):
     """
@@ -75,7 +124,8 @@ def apply_edits(input_path: str, actions: list) -> str:
     directory = os.path.dirname(input_path)
     filename = os.path.basename(input_path)
     output_path = os.path.join(directory, f"edited_{filename}")
-    srt_path = None
+    temp_srt_path = None
+    music_stream = None
 
     if not actions:
         return input_path
@@ -93,6 +143,24 @@ def apply_edits(input_path: str, actions: list) -> str:
         
         # Convert to string and fix Windows path issues for FFmpeg
         font_str = str(font_path).replace("\\", "/")
+
+        silence_action = next((a for a in actions if a['type'] == 'remove_silence'), None)
+        if silence_action:
+            segments = detect_silence(input_path, silence_action.get('threshold', -30), silence_action.get('min_duration', 0.5))
+            if segments:
+                # Create trim filters for every segment
+                video_parts = []
+                audio_parts = []
+                for start, end in segments:
+                    v_cut = stream.trim(start=start, end=end).setpts('PTS-STARTPTS')
+                    a_cut = audio.filter_('atrim', start=start, end=end).filter_('asetpts', 'PTS-STARTPTS')
+                    video_parts.append(v_cut)
+                    audio_parts.append(a_cut)
+                
+                # Concat them back together
+                stream = ffmpeg.concat(*[p for pair in zip(video_parts, audio_parts) for p in pair], v=1, a=1).node[0]
+                audio = ffmpeg.concat(*[p for pair in zip(video_parts, audio_parts) for p in pair], v=1, a=1).node[1]
+                print("✅ Applied Silence Removal (Jump Cuts)")
 
         # 3. Apply Actions
         for action in actions:
@@ -205,6 +273,17 @@ def apply_edits(input_path: str, actions: list) -> str:
                         root_srt_filename, 
                         force_style='FontName=Arial,FontSize=24,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=3,Outline=1,Shadow=0,MarginV=20'
                     )
+            elif action['type'] == 'remove_silence':
+                continue # Already handled above
+
+            elif action['type'] == 'aspect_ratio':
+                ratio = action.get('ratio', '9:16')
+                # Basic Center Crop for 9:16
+                if ratio == '9:16':
+                    # w=ih*(9/16), h=ih, x=(iw-ow)/2, y=0
+                    stream = stream.filter('crop', 'ih*(9/16)', 'ih', '(iw-ow)/2', '0')
+                elif ratio == '1:1':
+                    stream = stream.filter('crop', 'ih', 'ih', '(iw-ow)/2', '0')
 
 
             # ------------------------

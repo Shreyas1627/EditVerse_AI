@@ -61,6 +61,8 @@ def parse_prompt(prompt_text: str) -> dict:
     5. type: "fade" -> requires "kind" ("in" or "out"), optional "duration" (float, default 1.0)
     6. type: "add_music" -> requires "track" (filename from library), optional "volume" (0.1 to 1.0, default 0.3)
     7. type: "auto_subtitles" -> no arguments needed.
+    8. type: "aspect_ratio" -> ratio ("9:16", "1:1"), strategy ("center", "pad")
+    9. type: "remove_silence" -> threshold (int, default -30), min_duration (float, default 0.5)
 
     RULES:
     - If the user mentions "funny" or "viral", assume they want 1.5x speed.
@@ -73,6 +75,9 @@ def parse_prompt(prompt_text: str) -> dict:
     - Always mix music at low volume (0.2 - 0.4) unless user says "loud".
     - If user says "captions", "subtitles", or "words on screen", use "auto_subtitles".
     - Return ONLY raw JSON. No markdown formatting.
+    - If user says "remove silence", "cut gaps", or "jump cuts", use "remove_silence".
+    - If user says "shorts","reel", "instagram reel", or "tiktok", use aspect_ratio "9:16".
+    - If user says "square" or "instagram", use aspect_ratio "1:1".
     """
 
     try:

@@ -2,6 +2,7 @@
 from pydantic import BaseModel
 from typing import Optional, List, Union
 
+
 # 1. Request Model for the Prompt Endpoint
 class PromptRequest(BaseModel):
     prompt: str # The raw text: "Cut first 5 seconds"
@@ -55,7 +56,11 @@ class SubtitleAction(BaseModel):
     type: str = "auto_subtitles"
     style: str = "default" # Future proofing for "karaoke" or "bold" styles
 
+class SilenceAction(BaseModel):
+    type: str = "remove_silence"
+    threshold: int = -30 # Decibels (anything quieter than this is silence)
+    min_duration: float = 0.5 # Seconds (minimum silence length to cut)
+
 # --- 3. The Container for AI Output ---
 class EditInstructions(BaseModel):
-    # The AI returns a list of ANY of these actions
-    actions: List[Union[TrimAction, AspectRatioAction, FilterAction, SpeedAction, TextAction, TransitionAction]]
+    actions: List[Union[TrimAction, AspectRatioAction, FilterAction, SpeedAction, TextAction, TransitionAction, MusicAction, SubtitleAction, SilenceAction]]
