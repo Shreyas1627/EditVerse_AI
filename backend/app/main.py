@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from backend.app.routers import jobs, auth # <-- Import auth
 
 # --- THIS SECTION FIXES THE MODULE NOT FOUND ERROR ---
 # 1. Get the path to the directory containing 'backend' and 'frontend' (project root)
@@ -33,6 +34,8 @@ app.add_middleware(
 
 # ... rest of your code ...
 app.include_router(jobs.router, prefix="/jobs", tags=["Jobs"])
+
+app.include_router(auth.router, prefix="/auth", tags=["Auth"]) # <-- Add this
 
 @app.get("/status")
 async def get_status():

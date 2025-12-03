@@ -61,6 +61,12 @@ class SilenceAction(BaseModel):
     threshold: int = -30 # Decibels (anything quieter than this is silence)
     min_duration: float = 0.5 # Seconds (minimum silence length to cut)
 
+class JobSummary(BaseModel):
+    id: str
+    status: str
+    original_file: str
+    created_at: str  # We will convert datetime to string
+
 # --- 3. The Container for AI Output ---
 class EditInstructions(BaseModel):
     actions: List[Union[TrimAction, AspectRatioAction, FilterAction, SpeedAction, TextAction, TransitionAction, MusicAction, SubtitleAction, SilenceAction]]

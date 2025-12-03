@@ -5,6 +5,16 @@ from backend.app.db.database import Base # Base is imported here
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    
+    # Relationship (Optional: Link jobs to users)
+    # jobs = relationship("VideoJob", back_populates="owner")
+
 class VideoJob(Base):
     __tablename__ = 'video_jobs'
 

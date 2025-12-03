@@ -12,6 +12,8 @@ from backend.app.db.models import VideoJob
 from backend.app.tasks import dummy_video_processing,process_video_edit
 from backend.app.core.config import settings
 from backend.app.core.schemas import PromptRequest,JobStatusResponse
+from typing import List
+from backend.app.core.schemas import JobSummary # Import new schema
 
 
 # --- 1. Define the APIRouter Instance ---
@@ -28,7 +30,23 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 print(f"DEBUG: Server will save files to: {UPLOAD_DIR}")
 # ---------------------------------------------
-
+@router.get("/history", response_model=List[JobSummary])
+async def get_job_history(db: Session = Depends(get_db)):
+    """
+    Returns the list of recent projects.
+    """
+    # Order by newest first
+    jobs = db.query(VideoJob).order_by(VideoJob.created_at.desc()).limit(10).all()
+    
+    return [
+        {
+            "id": str(job.id),
+            "status": job.status,
+            "original_file": job.original_file_path,
+            "created_at": str(job.created_at)
+        }
+        for job in jobs
+    ]
 
 @router.post("/upload")
 async def upload_video(
