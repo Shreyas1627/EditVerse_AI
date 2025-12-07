@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, Depends,HTTPException
+from fastapi import APIRouter, File, UploadFile, Depends,HTTPException,BackgroundTasks
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from pathlib import Path
@@ -75,7 +75,7 @@ def get_job_history(user_id: int = Depends(get_current_user_id),db: Session = De
     ]
 
 @router.post("/upload")
-async def upload_video(
+async def upload_video(background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     # db is injected automatically by FastAPI, based on your database.py
     db: Session = Depends(get_db),
@@ -118,7 +118,9 @@ async def upload_video(
     db.commit()
     db.refresh(new_job) # Reload the job object to get its generated ID
 
-    dummy_video_processing.delay(str(new_job.id), unique_filename)
+    # dummy_video_processing.delay(str(new_job.id), unique_filename)
+
+    background_tasks.add_task(dummy_video_processing, str(new_job.id), unique_filename)
 
     return {
         "message": "File uploaded successfully. Ready for prompt submission.",
@@ -133,6 +135,7 @@ async def upload_video(
 async def submit_prompt(
     job_id: str, 
     request: PromptRequest, 
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -148,7 +151,8 @@ async def submit_prompt(
     db.commit()
 
     # Trigger Celery Task
-    process_video_edit.delay(job_id, request.prompt)
+    # process_video_edit.delay(job_id, request.prompt)
+    background_tasks.add_task(process_video_edit, job_id, request.prompt)
 
     return {"message": "Prompt received. Editing started.", "status": "QUEUED"}
 
