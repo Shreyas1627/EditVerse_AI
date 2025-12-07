@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, FileVideo, User, History, X, Plus, Download, Menu } from 'lucide-react';
 
-export default function Header({ projects = [], currentProject, hasVideo }) {
+export default function Header({ projects = [], currentProject, hasVideo,onExport }) {
   const [showHistory, setShowHistory] = useState(false);
 
   const formatDate = (timestamp) => {
@@ -89,7 +89,7 @@ export default function Header({ projects = [], currentProject, hasVideo }) {
       <div style={styles.headerRight}>
         <div style={styles.divider} />
         <button style={styles.shortcutButton}>Shortcut</button>
-        <button style={{...styles.exportButton, opacity: hasVideo ? 1 : 0.5}} disabled={!hasVideo}>
+        <button style={{...styles.exportButton, opacity: hasVideo ? 1 : 0.5}} disabled={!hasVideo} onClick={onExport}>
           <Download size={18} />
           Export
         </button>

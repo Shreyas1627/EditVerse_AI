@@ -80,11 +80,25 @@ def process_video_edit(job_id: str, prompt: str):
         # 1. Parse the Prompt
         parsed_result = parse_prompt(prompt)
         actions = parsed_result["actions"]
+        reply = parsed_result.get("reply", "Done!")
         print(f"📜 [WORKER] Parsed Actions: {actions}")
+        print(f"💬 [WORKER] Reply: {reply}")
+
+        # 2. Save the AI Reply to DB
+        job.ai_reply = reply
+
+        if not actions:
+            print("🛑 [WORKER] No actions detected. Treating as chat.")
+            job.status = "COMPLETED" # Mark done so frontend sees the reply
+            # We DO NOT update job.edited_file_path, so the video stays same
+            db.commit()
+            return {"status": "CHAT_ONLY", "reply": reply}
 
         # 2. (Future) Execute FFmpeg based on 'actions'
         # For now, we pretend to edit by sleeping or just passing through
         original_path = job.original_file_path
+
+        input_path = job.edited_file_path if job.edited_file_path else original_path
         edited_path = apply_edits(original_path, actions)
         
         # 3. Update Status

@@ -38,3 +38,4 @@ class VideoJob(Base):
     fps = Column(Float, nullable=True)
     codec = Column(String, nullable=True)
     error_message = Column(Text, nullable=True) # Good for debugging failures
+    ai_reply = Column(Text, nullable=True)

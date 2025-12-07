@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
+import { API_BASE_URL } from '../config';
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +16,7 @@ const LoginPage = () => {
     setLoading(true);
     
     const endpoint = isRegister ? '/auth/register' : '/auth/login';
-    const url = `http://localhost:8000${endpoint}`;
+    const url = `${API_BASE_URL}${endpoint}`;
 
     try {
       const res = await axios.post(url, { email, password });

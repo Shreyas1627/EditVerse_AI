@@ -16,6 +16,7 @@ class JobStatusResponse(BaseModel):
     width: Optional[int] = None
     height: Optional[int] = None
     error: Optional[str] = None
+    ai_reply: Optional[str] = None
 
 class TrimAction(BaseModel):
     type: str = "trim"

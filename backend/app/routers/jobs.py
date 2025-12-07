@@ -5,6 +5,9 @@ from pathlib import Path
 import shutil
 import uuid
 import os
+from fastapi.security import OAuth2PasswordBearer
+from backend.app.core.security import decode_access_token
+
 
 # Import modules from your project structure
 from backend.app.db.database import get_db
@@ -14,12 +17,32 @@ from backend.app.core.config import settings
 from backend.app.core.schemas import PromptRequest,JobStatusResponse
 from typing import List
 from backend.app.core.schemas import JobSummary # Import new schema
+from backend.app.db.models import User
 
 
 # --- 1. Define the APIRouter Instance ---
 # This is the 'router' object that main.py needs to import.
 router = APIRouter()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+
 # ----------------------------------------
+
+def get_current_user_id(token: str = Depends(oauth2_scheme),db: Session = Depends(get_db)):
+    
+    # payload = decode_access_token(token)
+    user_id_str = decode_access_token(token)
+    if not user_id_str:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    
+    user_id = int(user_id_str)
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    
+    return user_id
+
 
 # Define a storage location relative to the project root (EditVerseAi)
 # Ensure this folder exists or create it!
@@ -28,15 +51,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 UPLOAD_DIR = BASE_DIR / "temp_storage"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+
+
 print(f"DEBUG: Server will save files to: {UPLOAD_DIR}")
 # ---------------------------------------------
 @router.get("/history", response_model=List[JobSummary])
-async def get_job_history(db: Session = Depends(get_db)):
+def get_job_history(user_id: int = Depends(get_current_user_id),db: Session = Depends(get_db)):
     """
     Returns the list of recent projects.
     """
+    
     # Order by newest first
-    jobs = db.query(VideoJob).order_by(VideoJob.created_at.desc()).limit(10).all()
+    jobs = db.query(VideoJob).filter(VideoJob.user_id==user_id).order_by(VideoJob.created_at.desc()).limit(10).all()
     
     return [
         {
@@ -52,7 +78,8 @@ async def get_job_history(db: Session = Depends(get_db)):
 async def upload_video(
     file: UploadFile = File(...),
     # db is injected automatically by FastAPI, based on your database.py
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_id: int = Depends(get_current_user_id)
 ):
     """
     Handles the upload of a video file, saves it locally, and creates a
@@ -80,8 +107,9 @@ async def upload_video(
 
     # 3. Create a PENDING job record in the database
     # In a real app, user_id would come from the authentication token.
+   
     new_job = VideoJob(
-        user_id=1,  # Placeholder for authenticated user
+        user_id=user_id,
         original_file_path=str(file_path),
         prompt="Awaiting user prompt...",
         status="UPLOADED"
@@ -141,7 +169,9 @@ async def get_job_status(job_id: str, db: Session = Depends(get_db)):
         "duration": job.duration,
         "width": job.width,
         "height": job.height,
-        "error": job.error_message
+        "error": job.error_message,
+        "prompt": job.prompt,
+        "ai_reply": job.ai_reply
     }
 # --- 3. DOWNLOAD VIDEO ---
 @router.get("/{job_id}/download")

@@ -1,23 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Play, Pause, Upload, Volume2, VolumeX, Maximize2 } from 'lucide-react';
 
-export default function VideoPreview({ 
-  isPlaying, 
-  onPlayPause, 
-  currentTime, 
-  duration, 
-  onVideoUpload, 
-  onProjectCreated, 
-  onDurationChange, 
-  onTimeUpdate, 
-  onSeek, 
-  videoSeekRef, 
-  videoRef, 
+export default function VideoPreview({
+  isPlaying,
+  onPlayPause,
+  currentTime,
+  duration,
+  onVideoUpload,
+  onProjectCreated,
+  onDurationChange,
+  onTimeUpdate,
+  onSeek,
+  videoSeekRef,
+  videoRef,
   isMuted,
   onToggleMute,
-  projectName, 
+  projectName,
   onProjectNameChange,
-  adjustments 
+  adjustments,
+  videoSrc
 }) {
   const [hasVideo, setHasVideo] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -39,6 +40,16 @@ export default function VideoPreview({
     }
   }, [videoSeekRef]);
 
+  // 👇 ADD THIS NEW EFFECT 👇
+  // This syncs the parent's videoSrc with this component's internal state
+  useEffect(() => {
+    if (videoSrc) {
+      setVideoUrl(videoSrc);
+      setHasVideo(true);
+    }
+  }, [videoSrc]); 
+  // 👆 END NEW EFFECT 👆
+
   // Sync video muted state
   useEffect(() => {
     if (internalVideoRef.current) {
@@ -56,16 +67,39 @@ export default function VideoPreview({
     return filters.join(' ');
   };
 
+  // const handleFileUpload = (file) => {
+  //   if (file && file.type.startsWith('video/')) {
+  //     const url = URL.createObjectURL(file);
+  //     setVideoUrl(url);
+  //     setHasVideo(true);
+  //     if (onVideoUpload) onVideoUpload();
+
+  //     const fileName = file.name.replace(/\.[^/.]+$/, '');
+  //     if (onProjectNameChange) onProjectNameChange(fileName);
+
+  //     if (onProjectCreated) {
+  //       onProjectCreated({
+  //         id: Date.now(),
+  //         name: fileName,
+  //         timestamp: Date.now(),
+  //         clips: 1,
+  //         videoFile: file,
+  //       });
+  //     }
+  //   }
+  // };
   const handleFileUpload = (file) => {
-    if (file && file.type.startsWith('video/')) {
+    if (file && file.type && file.type.startsWith('video/')) {
       const url = URL.createObjectURL(file);
       setVideoUrl(url);
       setHasVideo(true);
-      if (onVideoUpload) onVideoUpload();
-      
+
+      // IMPORTANT: pass the *File* to parent so backend upload works
+      if (onVideoUpload) onVideoUpload(file);
+
       const fileName = file.name.replace(/\.[^/.]+$/, '');
       if (onProjectNameChange) onProjectNameChange(fileName);
-      
+
       if (onProjectCreated) {
         onProjectCreated({
           id: Date.now(),
@@ -77,6 +111,7 @@ export default function VideoPreview({
       }
     }
   };
+
 
   // Sync video playback with isPlaying state
   useEffect(() => {
@@ -182,7 +217,7 @@ export default function VideoPreview({
               autoFocus
             />
           ) : (
-            <div 
+            <div
               style={styles.nameLabel}
               onClick={() => setIsEditingName(true)}
             >
@@ -203,7 +238,7 @@ export default function VideoPreview({
 
       <div style={styles.previewArea}>
         {!hasVideo ? (
-          <div 
+          <div
             style={{
               ...styles.uploadArea,
               ...(isDragging ? styles.uploadAreaDragging : {})
@@ -228,9 +263,9 @@ export default function VideoPreview({
           </div>
         ) : (
           <div style={styles.videoContainer}>
-            <video 
+            <video
               ref={internalVideoRef}
-              src={videoUrl} 
+              src={videoSrc || videoUrl}
               style={{
                 ...styles.video,
                 filter: getVideoFilters()
@@ -274,8 +309,8 @@ export default function VideoPreview({
       {isFullscreen && (
         <div style={styles.fullscreenOverlay} onClick={() => setIsFullscreen(false)}>
           <div style={styles.fullscreenModal} onClick={(e) => e.stopPropagation()}>
-            <video 
-              src={videoUrl} 
+            <video
+              src={videoSrc || videoUrl}
               style={{
                 ...styles.fullscreenVideo,
                 filter: getVideoFilters()
@@ -283,7 +318,7 @@ export default function VideoPreview({
               controls
               autoPlay={isPlaying}
             />
-            <button 
+            <button
               style={styles.closeFullscreen}
               onClick={() => setIsFullscreen(false)}
             >
