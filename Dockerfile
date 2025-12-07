@@ -3,16 +3,25 @@ FROM python:3.10-slim
 
 # 1. Install System Dependencies (FFmpeg is crucial here)
 RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    make \
+    pkg-config \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libffi-dev \
     ffmpeg \
     libsm6 \
     libxext6 \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*   
+    
 
 # 2. Set Working Directory
 WORKDIR /app
 
 # 3. Copy Requirements and Install
 COPY backend/requirements.txt .
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 # 4. Copy the Application Code
