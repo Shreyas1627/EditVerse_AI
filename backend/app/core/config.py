@@ -32,14 +32,14 @@ class Settings(BaseSettings):
     # Core settings
     PROJECT_NAME: str = "EditVerse AI"
     # We use Field(..., env='DATABASE_URL') to be explicit, but default works too
-    DATABASE_URL: str 
+    DATABASE_URL: str ="postgresql://app_user:strongpass@localhost:5432/Editversedb"
     SECRET_KEY: str = "default_insecure_key_if_missing"
     
     # Celery settings
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     
-    SAMBANOVA_API_KEY: str
+    SAMBANOVA_API_KEY: str="3ba5261e-561f-4d19-b856-347f7b8840ef"
     # The URL for SambaNova's API
     SAMBANOVA_BASE_URL: str = "https://api.sambanova.ai/v1" 
     # We will use the fast Llama 3.1 8B model
