@@ -606,7 +606,7 @@ const EditorPage = () => {
             } catch (err) {
                 console.error("Status poll error:", err);
             }
-        }, 2500);
+        }, 10000);
     };
 
     const downloadEditedVideo = async (id) => {
