@@ -29,7 +29,7 @@ export default function VideoPreview({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const internalVideoRef = useRef(null);
   const inputRef = useRef(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+
 
   // Expose the video seek function to parent
   useEffect(() => {
