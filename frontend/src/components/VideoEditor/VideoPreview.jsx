@@ -18,7 +18,8 @@ export default function VideoPreview({
   projectName,
   onProjectNameChange,
   adjustments,
-  videoSrc
+  videoSrc,
+  isProcessing
 }) {
   const [hasVideo, setHasVideo] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -351,6 +352,7 @@ const styles = {
     flex: 1,
     display: 'flex',
     flexDirection: 'column',
+    position: 'relative',
     background: '#000',
     minHeight: 0,
   },
