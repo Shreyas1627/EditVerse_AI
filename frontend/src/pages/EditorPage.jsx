@@ -558,15 +558,14 @@ const EditorPage = () => {
 
             // 3. Start waiting for the REAL reply (Silent wait)
             startPollingStatus(jobId);
+            
 
         } catch (err) {
             console.error("Prompt send error:", err);
             setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: 'Failed to reach the AI brain.', timestamp: new Date() }]);
-        }
-        finally {
-            // 3. Stop Loading (Runs whether success or error)
             setIsProcessing(false);
         }
+
 
         // try {
         //     const res = await axios.post(`${API_URL}/jobs/${jobId}/prompt`, { prompt: content });
@@ -603,8 +602,10 @@ const EditorPage = () => {
                     await downloadEditedVideo(id);
                     const aiMessage = data.ai_reply || 'Editing magic complete! ✨';
                     setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: aiMessage, timestamp: new Date() }]);
+                    setIsProcessing(false);
                 } else if (data.status === "FAILED") {
                     clearInterval(statusPollRef.current);
+                    setIsProcessing(false);
                     statusPollRef.current = null;
                     setMessages(prev => [...prev, { id: Date.now(), role: 'assistant', content: 'Editing failed. Check backend logs.', timestamp: new Date() }]);
                 } else {
