@@ -1,5 +1,6 @@
 # backend/app/services/prompt_parser.py
 import json
+import re 
 from openai import OpenAI
 from backend.app.core.config import settings
 
@@ -147,13 +148,35 @@ def parse_prompt(prompt_text: str) -> dict:
         # 4. Parse Response
         content = response.choices[0].message.content.strip()
         print(f"🤖 [AI] Raw Response: {content}")
-        
-        # Clean up markdown if present
-        if content.startswith("```json"):
-            content = content.replace("```json", "").replace("```", "")
-        
-        return json.loads(content)
+
+        try:
+            # Attempt 1: Try parsing directly (Best case)
+            return json.loads(content)
+        except json.JSONDecodeError:
+            # Attempt 2: Use Regex to find the JSON object { ... }
+            # This ignores "Here is your JSON:" or markdown backticks
+            match = re.search(r"\{.*\}", content, re.DOTALL)
+            if match:
+                json_str = match.group(0)
+                return json.loads(json_str)
+            else:
+                raise ValueError("No JSON object found in response")
+        # --- FIX ENDS HERE ---
 
     except Exception as e:
         print(f"❌ [AI] Error: {e}")
-        return {"actions": []}
+        # Return a safe fallback so the app doesn't crash
+        return {
+            "actions": [], 
+            "reply": "I had a brain freeze! 🥶 Could you try saying that again?"
+        }
+        
+        # Clean up markdown if present
+    #     if content.startswith("```json"):
+    #         content = content.replace("```json", "").replace("```", "")
+        
+    #     return json.loads(content)
+
+    # except Exception as e:
+    #     print(f"❌ [AI] Error: {e}")
+    #     return {"actions": []}
