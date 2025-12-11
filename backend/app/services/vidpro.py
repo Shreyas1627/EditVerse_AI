@@ -189,21 +189,32 @@ def apply_edits(input_path: str, actions: list) -> str:
                     stream = stream.colorbalance(bs=0.2)
                 elif name == 'retro' or name == 'vintage':
                     print("📼 Applying Retro/VHS Effect...")
-
-                    noise_input_str = f"nullsrc=s={width}x{height}"
-                    # 1. Create a noise generator stream with same resolution
-                    noise = (
-                        ffmpeg
-                        .input(noise_input_str, f="lavfi")
-                        .filter("noise", alls="20", allf="t+u")
-                    )
-                    # 2. Overlay noise on current stream + Apply Vintage Curves
+                    
+                    # Apply noise + Color Grading DIRECTLY to the video stream
+                    # No 'overlay' or 'nullsrc' needed!
                     stream = (
-                        ffmpeg
-                        .overlay(stream, noise, format="yuv420", shortest=1)
+                        stream
+                        .filter("noise", alls="20", allf="t+u")
                         .filter("eq", contrast=1.2, saturation=0.6)
                         .filter("curves", preset="vintage")
                     )
+                # elif name == 'retro' or name == 'vintage':
+                #     print("📼 Applying Retro/VHS Effect...")
+
+                #     noise_input_str = f"nullsrc=s={width}x{height}"
+                #     # 1. Create a noise generator stream with same resolution
+                #     noise = (
+                #         ffmpeg
+                #         .input(noise_input_str, f="lavfi")
+                #         .filter("noise", alls="20", allf="t+u")
+                #     )
+                #     # 2. Overlay noise on current stream + Apply Vintage Curves
+                #     stream = (
+                #         ffmpeg
+                #         .overlay(stream, noise, format="yuv420", shortest=1)
+                #         .filter("eq", contrast=1.2, saturation=0.6)
+                #         .filter("curves", preset="vintage")
+                #     )
                 elif action['type'] == 'zoom':
                     print("🔍 Applying Dramatic Zoom...")
                     # Zooms in 50% over 25 seconds (approx) or duration of clip
