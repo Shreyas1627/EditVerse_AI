@@ -189,10 +189,12 @@ def apply_edits(input_path: str, actions: list) -> str:
                     stream = stream.colorbalance(bs=0.2)
                 elif name == 'retro' or name == 'vintage':
                     print("📼 Applying Retro/VHS Effect...")
+
+                    noise_input_str = f"nullsrc=s={width}x{height}"
                     # 1. Create a noise generator stream with same resolution
                     noise = (
                         ffmpeg
-                        .input(f"s={width}x{height}", f="lavfi", i="nullsrc")
+                        .input(f"s={width}x{height}", f="lavfi")
                         .filter("noise", alls="20", allf="t+u")
                     )
                     # 2. Overlay noise on current stream + Apply Vintage Curves
